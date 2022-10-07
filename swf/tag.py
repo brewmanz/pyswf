@@ -12,7 +12,6 @@ except ImportError:
 import struct
 from io import BytesIO
 
-
 class TagFactory(object):
     @classmethod
     def create(cls, type):
@@ -82,6 +81,9 @@ class Tag(object):
     def __init__(self):
         pass
 
+    _colourName = ''
+    _colourOff = ''
+
     @property
     def level(self):
         return 1
@@ -93,7 +95,7 @@ class Tag(object):
     @property
     def name(self):
         """ The tag name """
-        return ""
+        return "!! OVERRIDE ME !!"
 
     def parse(self, data, length, version=1):
         """ Parses this tag """
@@ -104,7 +106,14 @@ class Tag(object):
         return set()
 
     def __str__(self):
-        return "[%02d:%s]" % (self.type, self.name)
+        """
+        #Example of using colour:
+        swf = SWF(f)
+        Tag._colourName = clrm.Back.GREEN # from colorama
+        Tag._colourOff = clrm.Style.RESET_ALL
+        print(swf)
+        """
+        return "[%02d:%s%s%s]" % (self.type, self._colourName, self.name, self._colourOff)
 
 class DefinitionTag(Tag):
 
@@ -292,7 +301,8 @@ class TagEnd(Tag):
         return TagEnd.TYPE
 
     def __str__(self):
-        return "[%02d:%s]" % (self.type, self.name)
+        s = super(__class__, self).__str__( )
+        return s
 
 class TagShowFrame(Tag):
     """
@@ -313,7 +323,8 @@ class TagShowFrame(Tag):
         return TagShowFrame.TYPE
 
     def __str__(self):
-        return "[%02d:%s]" % (self.type, self.name)
+        s = super(__class__, self).__str__( )
+        return s
 
 class TagDefineShape(DefinitionTag):
     """
@@ -364,7 +375,7 @@ class TagDefineShape(DefinitionTag):
         return s
 
     def __str__(self):
-        s = super(TagDefineShape, self).__str__( ) + " " + \
+        s = super(__class__, self).__str__( ) + " " + \
             "ID: %d" % self.characterId + ", " + \
             "Bounds: " + self._shape_bounds.__str__()
         #s += "\n%s" % self._shapes.__str__()
@@ -445,7 +456,7 @@ class TagPlaceObject(DisplayListTag):
         return TagPlaceObject.TYPE
 
     def __str__(self):
-        s = super(TagPlaceObject, self).__str__() + " " + \
+        s = super(__class__, self).__str__() + " " + \
             "Depth: %d, " % self.depth + \
             "CharacterID: %d" % self.characterId
         if self.hasName:
@@ -556,7 +567,7 @@ class TagJPEGTables(DefinitionTag):
             self.jpegTables.seek(0)
 
     def __str__(self):
-        s = super(TagJPEGTables, self).__str__()
+        s = super(__class__, self).__str__()
         s += " Length: %d" % self.length
         return s
 
@@ -582,7 +593,7 @@ class TagSetBackgroundColor(Tag):
         return TagSetBackgroundColor.TYPE
 
     def __str__(self):
-        s = super(TagSetBackgroundColor, self).__str__()
+        s = super(__class__, self).__str__()
         s += " Color: " + ColorUtils.to_rgb_string(self.color)
         return s
 
@@ -1319,7 +1330,7 @@ class TagDefineSprite(SWFTimelineContainer):
         return TagDefineSprite.TYPE
 
     def __str__(self):
-        s = super(TagDefineSprite, self).__str__() + " " + \
+        s = super(__class__, self).__str__() + " " + \
             "ID: %d" % self.characterId
         return s
 
@@ -1540,7 +1551,7 @@ class TagFileAttributes(Tag):
         data.skip_bytes(3)
 
     def __str__(self):
-        s = super(TagFileAttributes, self).__str__() + \
+        s = super(__class__, self).__str__() + \
             " useDirectBlit: %d, " % self.useDirectBlit + \
             "useGPU: %d, " % self.useGPU + \
             "hasMetadata: %d, " % self.hasMetadata + \
@@ -1740,7 +1751,7 @@ class TagMetadata(Tag):
         self.xmlString = data.readString()
 
     def __str__(self):
-        s = super(TagMetadata, self).__str__()
+        s = super(__class__, self).__str__()
         s += " xml: %r" % self.xmlString
         return s
 
@@ -1931,7 +1942,7 @@ class TagDefineSound(Tag):
         self.soundData = BytesIO(data.read(length - 7))
 
     def __str__(self):
-        s = super(TagDefineSound, self).__str__()
+        s = super(__class__, self).__str__()
         s += " soundFormat: %s" % AudioCodec.tostring(self.soundFormat)
         s += " soundRate: %s" % AudioSampleRate.tostring(self.soundRate)
         s += " soundSampleSize: %s" % AudioSampleSize.tostring(self.soundSampleSize)
@@ -2028,7 +2039,7 @@ class TagSoundStreamHead(Tag):
         assert hdr == length
 
     def __str__(self):
-        s = super(TagSoundStreamHead, self).__str__()
+        s = super(__class__, self).__str__()
         s += " playbackRate: %s" % AudioSampleRate.tostring(self.playbackRate)
         s += " playbackSampleSize: %s" % AudioSampleSize.tostring(self.playbackSampleSize)
         s += " playbackChannels: %s" % AudioChannels.tostring(self.playbackChannels)
@@ -2140,7 +2151,7 @@ class TagProductInfo(Tag):
         self.compileTime = data.readUI64()
 
     def __str__(self):
-        s = super(TagProductInfo, self).__str__()
+        s = super(__class__, self).__str__()
         s += " product: %s" % ProductKind.tostring(self.product)
         s += " edition: %s" % ProductEdition.tostring(self.edition)
         s += " major.minor.build: %d.%d.%d" % (self.majorVersion, self.minorVersion, self.build)
@@ -2171,7 +2182,7 @@ class TagScriptLimits(Tag):
         self.scriptTimeoutSeconds = data.readUI16()
 
     def __str__(self):
-        s = super(TagScriptLimits, self).__str__()
+        s = super(__class__, self).__str__()
         s += " maxRecursionDepth: %s" % self.maxRecursionDepth
         s += " scriptTimeoutSeconds: %s" % self.scriptTimeoutSeconds
         return s
@@ -2222,7 +2233,7 @@ class TagExportAssets(Tag):
         self.exports = [data.readEXPORT() for i in range(self.count)]
 
     def __str__(self):
-        s = super(TagExportAssets, self).__str__()
+        s = super(__class__, self).__str__()
         s += " exports: %s" % self.exports
         return s
 
@@ -2257,7 +2268,7 @@ class TagProtect(Tag):
             self.password = None
 
     def __str__(self):
-        s = super(TagProtect, self).__str__()
+        s = super(__class__, self).__str__()
         s += " password: %r" % self.password
         return s
 
@@ -2287,7 +2298,7 @@ class TagEnableDebugger(Tag):
         self.password = data.readString()
 
     def __str__(self):
-        s = super(TagEnableDebugger, self).__str__()
+        s = super(__class__, self).__str__()
         s += " password: %r" % self.password
         return s
 
@@ -2318,7 +2329,7 @@ class TagEnableDebugger2(Tag):
         self.password = data.readString()
 
     def __str__(self):
-        s = super(TagEnableDebugger2, self).__str__()
+        s = super(__class__, self).__str__()
         s += " password: %r" % self.password
         return s
 
@@ -2353,6 +2364,10 @@ class TagDoInitAction(Tag):
     def parse(self, data, length, version=1):
         self.spriteId = data.readUI16()
         self.actions = data.readACTIONRECORDs()
+
+    def __str__(self):
+        s = super(__class__, self).__str__()
+        return s
 
 class TagDefineEditText(DefinitionTag):
     """
@@ -2423,6 +2438,10 @@ class TagDefineEditText(DefinitionTag):
         self.variableName = data.readString()
         self.initialText = data.readString() if self.hasText else None
 
+    def __str__(self):
+        s = super(__class__, self).__str__()
+        return s
+
 class TagDefineButton(DefinitionTag):
     """
     The DefineButton tag defines a button character for later use by control tags such as
@@ -2451,6 +2470,10 @@ class TagDefineButton(DefinitionTag):
         self.characterId = data.readUI16()
         self.buttonCharacters = data.readBUTTONRECORDs(version = 1)
         self.buttonActions = data.readACTIONRECORDs()
+
+    def __str__(self):
+        s = super(__class__, self).__str__()
+        return s
 
 class TagDefineButton2(DefinitionTag):
     """
@@ -2488,6 +2511,10 @@ class TagDefineButton2(DefinitionTag):
             # if we have actions, seek to the first one
             data.seek(offs + self.actionOffset)
             self.buttonActions = data.readBUTTONCONDACTIONSs()
+
+    def __str__(self):
+        s = super(__class__, self).__str__()
+        return s
 
 class TagDefineButtonSound(Tag):
     """
@@ -2541,6 +2568,10 @@ class TagDefineScalingGrid(Tag):
         self.characterId = data.readUI16()
         self.splitter = data.readRECT()
 
+    def __str__(self):
+        s = super(__class__, self).__str__()
+        return s
+
 class TagDefineVideoStream(DefinitionTag):
     """
     DefineVideoStream defines a video character that can later be placed on the display list.
@@ -2568,6 +2599,10 @@ class TagDefineVideoStream(DefinitionTag):
         self.videoSmoothing = data.readUB(1)
         self.codec = data.readUI8()
 
+    def __str__(self):
+        s = super(__class__, self).__str__()
+        return s
+
 class TagVideoFrame(Tag):
     """
     VideoFrame provides a single frame of video data for a video character that is already defined
@@ -2590,6 +2625,10 @@ class TagVideoFrame(Tag):
         self.streamId = data.readUI16()
         self.frameNumber = data.readUI16()
         self.videoData = data.read(length - 4)
+
+    def __str__(self):
+        s = super(__class__, self).__str__()
+        return s
 
 class TagDefineMorphShape2(TagDefineMorphShape):
     """
@@ -2638,6 +2677,10 @@ class TagDefineMorphShape2(TagDefineMorphShape):
 
         self.startEdges = data.readSHAPE();
         self.endEdges = data.readSHAPE();
+
+    def __str__(self):
+        s = super(__class__, self).__str__()
+        return s
 
 if __name__ == '__main__':
     # some table checks
