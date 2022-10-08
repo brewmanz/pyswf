@@ -12,6 +12,11 @@ except ImportError:
 import struct
 from io import BytesIO
 
+verticalDots1 = '·'
+verticalDots2 = ':'
+verticalDots3 = '⋮'
+verticalDots4 = '⁞'
+
 class TagFactory(object):
     @classmethod
     def create(cls, type, tagOffset: int, tagLen: int):
@@ -78,8 +83,8 @@ class TagFactory(object):
         elif type == 89: res = TagStartSound2()
         else: return None
 
-        res.setTagOffset(tagOffset)
-        res.setTagLen(tagLen)
+        res.tagOffset = tagOffset
+        res.tagLen = tagLen
 
         return res
 
@@ -94,13 +99,15 @@ class Tag(object):
     @property
     def tagOffset(self):
         return self._tagOffset
-    def setTagOffset(self, value: int):
+    @tagOffset.setter
+    def tagOffset(self, value):
         self._tagOffset = value
 
     @property
     def tagLen(self):
         return self._tagLen
-    def setTagLen(self, value: int):
+    @tagLen.setter
+    def tagLen(self, value):
         self._tagLen = value
 
     @property
@@ -137,7 +144,7 @@ class Tag(object):
 class DefinitionTag(Tag):
 
     def __init__(self):
-        super(DefinitionTag, self).__init__()
+        super(__class__, self).__init__()
         self._characterId = -1
 
     @property
@@ -154,31 +161,41 @@ class DefinitionTag(Tag):
         pass
 
     def get_dependencies(self):
-        s = super(DefinitionTag, self).get_dependencies()
+        s = super(__class__, self).get_dependencies()
         s.add(self.characterId)
+        return s
+
+    def __str__(self):
+        s = super(__class__, self).__str__()
+        #s += f' ID {self.characterId}' # Hmm not actulayy set here, so let descendants worry about it
+        #s += verticalDots1 # mark as started
         return s
 
 class DisplayListTag(Tag):
     characterId = -1
     def __init__(self):
-        super(DisplayListTag, self).__init__()
+        super(__class__, self).__init__()
 
     def parse(self, data, length, version=1):
         pass
 
     def get_dependencies(self):
-        s = super(DisplayListTag, self).get_dependencies()
+        s = super(__class_, self).get_dependencies()
         s.add(self.characterId)
+        return s
+
+    def __str__(self):
+        s = super(__class__, self).__str__()
         return s
 
 class SWFTimelineContainer(DefinitionTag):
     def __init__(self):
         self.tags = []
-        super(SWFTimelineContainer, self).__init__()
+        super(__class__, self).__init__()
 
     def get_dependencies(self):
         """ Returns the character ids this tag refers to """
-        s = super(SWFTimelineContainer, self).get_dependencies()
+        s = super(__class__, self).get_dependencies()
         for dt in self.all_tags_of_type(DefinitionTag):
             s.update(dt.get_dependencies())
         return s
@@ -300,6 +317,10 @@ class SWFTimelineContainer(DefinitionTag):
 
         return rc
 
+    def __str__(self):
+        s = super(__class__, self).__str__()
+        return s
+
 class TagEnd(Tag):
     """
     The End tag marks the end of a file. This must always be the last tag in a file.
@@ -308,7 +329,7 @@ class TagEnd(Tag):
     """
     TYPE = 0
     def __init__(self):
-        super(TagEnd, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -317,10 +338,11 @@ class TagEnd(Tag):
 
     @property
     def type(self):
-        return TagEnd.TYPE
+        return __class__.TYPE
 
     def __str__(self):
         s = super(__class__, self).__str__( )
+        s += verticalDots4 # mark as complete
         return s
 
 class TagShowFrame(Tag):
@@ -331,7 +353,7 @@ class TagShowFrame(Tag):
     """
     TYPE = 1
     def __init__(self):
-        super(TagShowFrame, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -339,10 +361,11 @@ class TagShowFrame(Tag):
 
     @property
     def type(self):
-        return TagShowFrame.TYPE
+        return __class__.TYPE
 
     def __str__(self):
         s = super(__class__, self).__str__( )
+        s += verticalDots4 # mark as complete
         return s
 
 class TagDefineShape(DefinitionTag):
@@ -359,7 +382,7 @@ class TagDefineShape(DefinitionTag):
     def __init__(self):
         self._shapes = None
         self._shape_bounds = None
-        super(TagDefineShape, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -367,7 +390,7 @@ class TagDefineShape(DefinitionTag):
 
     @property
     def type(self):
-        return TagDefineShape.TYPE
+        return __class__.TYPE
 
     @property
     def shapes(self):
@@ -389,7 +412,7 @@ class TagDefineShape(DefinitionTag):
         self._shapes = data.readSHAPEWITHSTYLE(self.level)
 
     def get_dependencies(self):
-        s = super(TagDefineShape, self).get_dependencies()
+        s = super(__class__, self).get_dependencies()
         s.update(self.shapes.get_dependencies())
         return s
 
@@ -441,7 +464,7 @@ class TagPlaceObject(DisplayListTag):
 
     def __init__(self):
         self._surfaceFilterList = []
-        super(TagPlaceObject, self).__init__()
+        super(__class__, self).__init__()
 
     def parse(self, data, length, version=1):
         """ Parses this tag """
@@ -456,7 +479,7 @@ class TagPlaceObject(DisplayListTag):
             self.hasColorTransform = True
 
     def get_dependencies(self):
-        s = super(TagPlaceObject, self).get_dependencies()
+        s = super(__class__, self).get_dependencies()
         if self.hasCharacter:
             s.add(self.characterId)
         return s
@@ -472,12 +495,12 @@ class TagPlaceObject(DisplayListTag):
 
     @property
     def type(self):
-        return TagPlaceObject.TYPE
+        return __class__.TYPE
 
     def __str__(self):
-        s = super(__class__, self).__str__() + " " + \
-            "Depth: %d, " % self.depth + \
-            "CharacterID: %d" % self.characterId
+        s = super(__class__, self).__str__() + \
+            " CharacterID: %d" % self.characterId + \
+            ", Depth: %d" % self.depth
         if self.hasName:
             s+= ", InstanceName: %s" % self.instanceName
         if self.hasMatrix:
@@ -492,6 +515,10 @@ class TagPlaceObject(DisplayListTag):
             s += ", Blendmode: %d" % self.blendMode
         return s
 
+    def __str__(self):
+        s = super(__class__, self).__str__( )
+        return s
+
 class TagRemoveObject(DisplayListTag):
     """
     The RemoveObject tag removes the specified character (at the specified depth)
@@ -501,7 +528,7 @@ class TagRemoveObject(DisplayListTag):
     TYPE = 5
     depth = 0
     def __init__(self):
-        super(TagRemoveObject, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -509,12 +536,16 @@ class TagRemoveObject(DisplayListTag):
 
     @property
     def type(self):
-        return TagRemoveObject.TYPE
+        return __class__.TYPE
 
     def parse(self, data, length, version=1):
         """ Parses this tag """
         self.characterId = data.readUI16()
         self.depth = data.readUI16()
+
+    def __str__(self):
+        s = super(__class__, self).__str__( )
+        return s
 
 class TagDefineBits(DefinitionTag):
     """
@@ -535,7 +566,7 @@ class TagDefineBits(DefinitionTag):
     def __init__(self):
         self.bitmapData = BytesIO()
         self.bitmapType = BitmapType.JPEG
-        super(TagDefineBits, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -543,7 +574,7 @@ class TagDefineBits(DefinitionTag):
 
     @property
     def type(self):
-        return TagDefineBits.TYPE
+        return __class__.TYPE
 
     def parse(self, data, length, version=1):
         self.bitmapData = BytesIO()
@@ -551,6 +582,12 @@ class TagDefineBits(DefinitionTag):
         if length > 2:
             self.bitmapData.write(data.f.read(length - 2))
             self.bitmapData.seek(0)
+
+    def __str__(self):
+        s = super(__class__, self).__str__()
+        s += f' ID {self.characterId}'
+        #s += verticalDots1 # mark as started
+        return s
 
 class TagJPEGTables(DefinitionTag):
     """
@@ -568,7 +605,7 @@ class TagJPEGTables(DefinitionTag):
     length = 0
 
     def __init__(self):
-        super(TagJPEGTables, self).__init__()
+        super(__class__, self).__init__()
         self.jpegTables = BytesIO()
 
     @property
@@ -577,7 +614,7 @@ class TagJPEGTables(DefinitionTag):
 
     @property
     def type(self):
-        return TagJPEGTables.TYPE
+        return __class__.TYPE
 
     def parse(self, data, length, version=1):
         self.length = length
@@ -598,7 +635,7 @@ class TagSetBackgroundColor(Tag):
     TYPE = 9
     color = 0
     def __init__(self):
-        super(TagSetBackgroundColor, self).__init__()
+        super(__class__, self).__init__()
 
     def parse(self, data, length, version=1):
         self.color = data.readRGB()
@@ -609,7 +646,7 @@ class TagSetBackgroundColor(Tag):
 
     @property
     def type(self):
-        return TagSetBackgroundColor.TYPE
+       return __class__.TYPE
 
     def __str__(self):
         s = super(__class__, self).__str__()
@@ -629,7 +666,7 @@ class TagDefineFont(DefinitionTag):
     offsetTable = []
     glyphShapeTable = []
     def __init__(self):
-        super(TagDefineFont, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -637,7 +674,7 @@ class TagDefineFont(DefinitionTag):
 
     @property
     def type(self):
-        return TagDefineFont.TYPE
+        return __class__.TYPE
 
     @property
     def level(self):
@@ -669,6 +706,10 @@ class TagDefineFont(DefinitionTag):
         for i in range(numGlyphs):
             self.glyphShapeTable.append(data.readSHAPE(self.unitDivisor))
 
+    def __str__(self):
+        s = super(__class__, self).__str__( )
+        return s
+
 class TagDefineText(DefinitionTag):
     """
     The DefineText tag defines a block of static text. It describes the font,
@@ -681,7 +722,7 @@ class TagDefineText(DefinitionTag):
 
     def __init__(self):
         self._records = []
-        super(TagDefineText, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -689,7 +730,7 @@ class TagDefineText(DefinitionTag):
 
     @property
     def type(self):
-        return TagDefineText.TYPE
+        return __class__.TYPE
 
     @property
     def level(self):
@@ -700,7 +741,7 @@ class TagDefineText(DefinitionTag):
         return 1
 
     def get_dependencies(self):
-        s = super(TagDefineText, self).get_dependencies()
+        s = super(__class__, self).get_dependencies()
         for r in self.records:
             s.update(r.get_dependencies())
         return s
@@ -723,6 +764,10 @@ class TagDefineText(DefinitionTag):
             self._records.append(record)
             record = data.readTEXTRECORD(glyphBits, advanceBits, record, self.level)
 
+    def __str__(self):
+        s = super(__class__, self).__str__( )
+        return s
+
 class TagDoAction(Tag):
     """
     DoAction instructs Flash Player to perform a list of actions when the
@@ -734,7 +779,7 @@ class TagDoAction(Tag):
     TYPE = 12
     def __init__(self):
         self._actions = []
-        super(TagDoAction, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -743,7 +788,7 @@ class TagDoAction(Tag):
     @property
     def type(self):
         """ Return the SWF tag type """
-        return TagDoAction.TYPE
+        return __class__.TYPE
 
     @property
     def level(self):
@@ -762,6 +807,10 @@ class TagDoAction(Tag):
     def parse(self, data, length, version=1):
         self._actions = data.readACTIONRECORDs()
 
+    def __str__(self):
+        s = super(__class__, self).__str__()
+        return s
+
 class TagDefineFontInfo(Tag):
     """
     The DefineFontInfo tag defines a mapping from a glyph font (defined with DefineFont) to a
@@ -777,7 +826,7 @@ class TagDefineFontInfo(Tag):
     """
     TYPE = 13
     def __init__(self):
-        super(TagDefineFontInfo, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -785,7 +834,7 @@ class TagDefineFontInfo(Tag):
 
     @property
     def type(self):
-        return TagDefineFontInfo.TYPE
+        return __class__.TYPE
 
     @property
     def level(self):
@@ -800,7 +849,7 @@ class TagDefineFontInfo(Tag):
         return 1
 
     def get_dependencies(self):
-        s = super(TagDefineFontInfo, self).get_dependencies()
+        s = super(__class__, self).get_dependencies()
         s.add(self.characterId)
         return s
 
@@ -846,6 +895,10 @@ class TagDefineFontInfo(Tag):
         for i in range(0, numGlyphs):
             self.codeTable.append(data.readUI16() if self.wideCodes else data.readUI8())
 
+    def __str__(self):
+        s = super(__class__, self).__str__( )
+        return s
+
 class TagDefineBitsLossless(DefinitionTag):
     """
     Defines a lossless bitmap character that contains RGB bitmap data compressed
@@ -867,7 +920,7 @@ class TagDefineBitsLossless(DefinitionTag):
     zlib_bitmap_data = None
     padded_width = 0
     def __init__(self):
-        super(TagDefineBitsLossless, self).__init__()
+        super(__class__, self).__init__()
 
     def parse(self, data, length, version=1):
         import zlib
@@ -951,7 +1004,13 @@ class TagDefineBitsLossless(DefinitionTag):
 
     @property
     def type(self):
-        return TagDefineBitsLossless.TYPE
+        return __class__.TYPE
+
+    def __str__(self):
+        s = super(__class__, self).__str__( )
+        s += f' ID: {self.characterId}'
+        s += verticalDots1 # mark as started complete
+        return s
 
 class TagDefineBitsJPEG2(TagDefineBits):
     """
@@ -978,7 +1037,7 @@ class TagDefineBitsJPEG2(TagDefineBits):
     bitmapType = 0
 
     def __init__(self):
-        super(TagDefineBitsJPEG2, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -986,7 +1045,7 @@ class TagDefineBitsJPEG2(TagDefineBits):
 
     @property
     def type(self):
-        return TagDefineBitsJPEG2.TYPE
+        return __class__.TYPE
 
     @property
     def version(self):
@@ -997,8 +1056,12 @@ class TagDefineBitsJPEG2(TagDefineBits):
         return 2
 
     def parse(self, data, length, version=1):
-        super(TagDefineBitsJPEG2, self).parse(data, length, version)
+        super(__class__, self).parse(data, length, version)
         self.bitmapType = ImageUtils.get_image_type(self.bitmapData)
+
+    def __str__(self):
+        s = super(__class__, self).__str__()
+        return s
 
 class TagDefineShape2(TagDefineShape):
     """
@@ -1010,7 +1073,7 @@ class TagDefineShape2(TagDefineShape):
     TYPE = 22
 
     def __init__(self):
-        super(TagDefineShape2, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -1018,7 +1081,7 @@ class TagDefineShape2(TagDefineShape):
 
     @property
     def type(self):
-        return TagDefineShape2.TYPE
+        return __class__.TYPE
 
     @property
     def level(self):
@@ -1027,6 +1090,10 @@ class TagDefineShape2(TagDefineShape):
     @property
     def version(self):
         return 2
+
+    def __str__(self):
+        s = super(__class__, self).__str__()
+        return s
 
 class TagPlaceObject2(TagPlaceObject):
     """
@@ -1091,7 +1158,7 @@ class TagPlaceObject2(TagPlaceObject):
     """
     TYPE = 26
     def __init__(self):
-        super(TagPlaceObject2, self).__init__()
+        super(__class__, self).__init__()
 
     def parse(self, data, length, version=1):
         flags = data.readUI8()
@@ -1126,7 +1193,7 @@ class TagPlaceObject2(TagPlaceObject):
 
     @property
     def type(self):
-        return TagPlaceObject2.TYPE
+        return __class__.TYPE
 
     @property
     def level(self):
@@ -1135,6 +1202,10 @@ class TagPlaceObject2(TagPlaceObject):
     @property
     def version(self):
         return 3
+
+    def __str__(self):
+        s = super(__class__, self).__str__()
+        return s
 
 class TagRemoveObject2(TagRemoveObject):
     """
@@ -1145,7 +1216,7 @@ class TagRemoveObject2(TagRemoveObject):
     TYPE = 28
 
     def __init__(self):
-        super(TagRemoveObject2, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -1153,7 +1224,7 @@ class TagRemoveObject2(TagRemoveObject):
 
     @property
     def type(self):
-        return TagRemoveObject2.TYPE
+        return __class__.TYPE
 
     @property
     def level(self):
@@ -1166,6 +1237,10 @@ class TagRemoveObject2(TagRemoveObject):
     def parse(self, data, length, version=1):
         self.depth = data.readUI16()
 
+    def __str__(self):
+        s = super(__class__, self).__str__()
+        return s
+
 class TagDefineShape3(TagDefineShape2):
     """
     DefineShape3 extends the capabilities of DefineShape2 by extending
@@ -1174,7 +1249,7 @@ class TagDefineShape3(TagDefineShape2):
     """
     TYPE = 32
     def __init__(self):
-        super(TagDefineShape3, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -1182,7 +1257,7 @@ class TagDefineShape3(TagDefineShape2):
 
     @property
     def type(self):
-        return TagDefineShape3.TYPE
+        return __class__.TYPE
 
     @property
     def level(self):
@@ -1191,6 +1266,10 @@ class TagDefineShape3(TagDefineShape2):
     @property
     def version(self):
         return 3
+
+    def __str__(self):
+        s = super(__class__, self).__str__()
+        return s
 
 class TagDefineText2(TagDefineText):
     """
@@ -1200,7 +1279,7 @@ class TagDefineText2(TagDefineText):
     """
     TYPE = 33
     def __init__(self):
-        super(TagDefineText2, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -1208,7 +1287,7 @@ class TagDefineText2(TagDefineText):
 
     @property
     def type(self):
-        return TagDefineText2.TYPE
+        return __class__.TYPE
 
     @property
     def level(self):
@@ -1217,6 +1296,10 @@ class TagDefineText2(TagDefineText):
     @property
     def version(self):
         return 3
+
+    def __str__(self):
+        s = super(__class__, self).__str__( )
+        return s
 
 class TagDefineBitsJPEG3(TagDefineBitsJPEG2):
     """
@@ -1245,7 +1328,7 @@ class TagDefineBitsJPEG3(TagDefineBitsJPEG2):
     TYPE = 35
     def __init__(self):
         self.bitmapAlphaData = BytesIO()
-        super(TagDefineBitsJPEG3, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -1253,7 +1336,7 @@ class TagDefineBitsJPEG3(TagDefineBitsJPEG2):
 
     @property
     def type(self):
-        return TagDefineBitsJPEG3.TYPE
+        return __class__.TYPE
 
     @property
     def version(self):
@@ -1283,6 +1366,10 @@ class TagDefineBitsJPEG3(TagDefineBitsJPEG2):
             temp.seek(0)
             self.bitmapAlphaData = temp
 
+    def __str__(self):
+        s = super(__class__, self).__str__( )
+        return s
+
 class TagDefineBitsLossless2(TagDefineBitsLossless):
     """
     DefineBitsLossless2 extends DefineBitsLossless with support for
@@ -1294,7 +1381,7 @@ class TagDefineBitsLossless2(TagDefineBitsLossless):
     """
     TYPE = 36
     def __init__(self):
-        super(TagDefineBitsLossless2, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -1302,7 +1389,7 @@ class TagDefineBitsLossless2(TagDefineBitsLossless):
 
     @property
     def type(self):
-        return TagDefineBitsLossless2.TYPE
+        return __class__.TYPE
 
     @property
     def level(self):
@@ -1311,6 +1398,10 @@ class TagDefineBitsLossless2(TagDefineBitsLossless):
     @property
     def version(self):
         return 3
+
+    def __str__(self):
+        s = super(__class__, self).__str__()
+        return s
 
 class TagDefineSprite(SWFTimelineContainer):
     """
@@ -1328,7 +1419,7 @@ class TagDefineSprite(SWFTimelineContainer):
     TYPE = 39
     frameCount = 0
     def __init__(self):
-        super(TagDefineSprite, self).__init__()
+        super(__class__, self).__init__()
 
     def parse(self, data, length, version=1):
         self.characterId = data.readUI16()
@@ -1336,7 +1427,7 @@ class TagDefineSprite(SWFTimelineContainer):
         self.parse_tags(data, version)
 
     def get_dependencies(self):
-        s = super(TagDefineSprite, self).get_dependencies()
+        s = super(__class__, self).get_dependencies()
         s.add(self.characterId)
         return s
 
@@ -1346,11 +1437,20 @@ class TagDefineSprite(SWFTimelineContainer):
 
     @property
     def type(self):
-        return TagDefineSprite.TYPE
+        return __class__.TYPE
+
+    @property
+    def frameCount(self):
+        return self._frameCount
+    @frameCount.setter
+    def frameCount(self, value):
+        self._frameCount = value
 
     def __str__(self):
-        s = super(__class__, self).__str__() + " " + \
-            "ID: %d" % self.characterId
+        s = super(__class__, self).__str__()
+        s += f' ID: {self.characterId}'
+        s += f', Fr# {self.frameCount}'
+        s += f', Tg# {len(self.tags)}'
         return s
 
 class TagFrameLabel(Tag):
@@ -1363,7 +1463,7 @@ class TagFrameLabel(Tag):
     frameName = ""
     namedAnchorFlag = False
     def __init__(self):
-        super(TagFrameLabel, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -1371,7 +1471,7 @@ class TagFrameLabel(Tag):
 
     @property
     def type(self):
-        return TagFrameLabel.TYPE
+        return __class__.TYPE
 
     @property
     def level(self):
@@ -1388,6 +1488,11 @@ class TagFrameLabel(Tag):
             data.readUI8() # Named anchor flag, always 1
             self.namedAnchorFlag = True
 
+    def __str__(self):
+        s = super(__class__, self).__str__( ) + " " + \
+            f'`{self.frameName}`'
+        return s
+
 class TagDefineMorphShape(DefinitionTag):
     """
     The DefineMorphShape tag defines the start and end states of a morph
@@ -1399,7 +1504,7 @@ class TagDefineMorphShape(DefinitionTag):
     def __init__(self):
         self._morphFillStyles = []
         self._morphLineStyles = []
-        super(TagDefineMorphShape, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -1407,7 +1512,7 @@ class TagDefineMorphShape(DefinitionTag):
 
     @property
     def type(self):
-        return TagDefineMorphShape.TYPE
+        return __class__.TYPE
 
     @property
     def level(self):
@@ -1440,11 +1545,15 @@ class TagDefineMorphShape(DefinitionTag):
         self.startEdges = data.readSHAPE();
         self.endEdges = data.readSHAPE();
 
+    def __str__(self):
+        s = super(__class__, self).__str__( )
+        return s
+
 class TagDefineFont2(TagDefineFont):
     TYPE= 48
     def __init__(self):
         self.glyphShapeTable = []
-        super(TagDefineFont2, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -1452,7 +1561,7 @@ class TagDefineFont2(TagDefineFont):
 
     @property
     def type(self):
-        return TagDefineFont2.TYPE
+        return __class__.TYPE
 
     @property
     def level(self):
@@ -1523,6 +1632,10 @@ class TagDefineFont2(TagDefineFont):
             for i in range(0, kerningCount):
                 self.fontKerningTable.append(data.readKERNINGRECORD(self.wideCodes))
 
+    def __str__(self):
+        s = super(__class__, self).__str__( )
+        return s
+
 class TagFileAttributes(Tag):
     """
     The FileAttributes tag defines characteristics of the SWF file. This tag
@@ -1542,7 +1655,7 @@ class TagFileAttributes(Tag):
     """
     TYPE = 69
     def __init__(self):
-        super(TagFileAttributes, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -1550,7 +1663,7 @@ class TagFileAttributes(Tag):
 
     @property
     def type(self):
-        return TagFileAttributes.TYPE
+        return __class__.TYPE
 
     @property
     def level(self):
@@ -1581,7 +1694,7 @@ class TagFileAttributes(Tag):
 class TagPlaceObject3(TagPlaceObject2):
     TYPE = 70
     def __init__(self):
-        super(TagPlaceObject3, self).__init__()
+        super(__class__, self).__init__()
 
     def parse(self, data, length, version=1):
         flags = data.readUI8()
@@ -1633,12 +1746,16 @@ class TagPlaceObject3(TagPlaceObject2):
 
     @property
     def type(self):
-        return TagPlaceObject3.TYPE
+        return __class__.TYPE
+
+    def __str__(self):
+        s = super(__class__, self).__str__( )
+        return s
 
 class TagDefineFontAlignZones(Tag):
     TYPE = 73
     def __init__(self):
-        super(TagDefineFontAlignZones, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -1646,7 +1763,7 @@ class TagDefineFontAlignZones(Tag):
 
     @property
     def type(self):
-        return TagDefineFontAlignZones.TYPE
+        return __class__.TYPE
 
     @property
     def level(self):
@@ -1666,10 +1783,14 @@ class TagDefineFontAlignZones(Tag):
         while data.tell() < recordsEndPos:
             self.zoneTable.append(data.readZONERECORD())
 
+    def __str__(self):
+        s = super(__class__, self).__str__( )
+        return s
+
 class TagCSMTextSettings(Tag):
     TYPE = 74
     def __init__(self):
-        super(TagCSMTextSettings, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -1677,7 +1798,7 @@ class TagCSMTextSettings(Tag):
 
     @property
     def type(self):
-        return TagCSMTextSettings.TYPE
+        return __class__.TYPE
 
     @property
     def level(self):
@@ -1696,10 +1817,14 @@ class TagCSMTextSettings(Tag):
         self.sharpness = data.readFIXED()
         data.readUI8() # reserved, always 0
 
+    def __str__(self):
+        s = super(__class__, self).__str__( )
+        return s
+
 class TagDefineFont3(TagDefineFont2):
     TYPE = 75
     def __init__(self):
-        super(TagDefineFont3, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -1707,7 +1832,7 @@ class TagDefineFont3(TagDefineFont2):
 
     @property
     def type(self):
-        return TagDefineFont3.TYPE
+        return __class__.TYPE
 
     @property
     def level(self):
@@ -1717,11 +1842,16 @@ class TagDefineFont3(TagDefineFont2):
     def version(self):
         return 8
 
+    def __str__(self):
+        s = super(__class__, self).__str__( )
+        return s
+
 class TagSymbolClass(Tag):
     TYPE = 76
     def __init__(self):
+        self.numSymbols = -1
         self.symbols = []
-        super(TagSymbolClass, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -1729,7 +1859,7 @@ class TagSymbolClass(Tag):
 
     @property
     def type(self):
-        return TagSymbolClass.TYPE
+        return __class__.TYPE
 
     @property
     def level(self):
@@ -1739,16 +1869,33 @@ class TagSymbolClass(Tag):
     def version(self):
         return 9 # educated guess (not specified in SWF10 spec)
 
+    @property
+    def numSymbols(self):
+        return self._numSymbols
+    @numSymbols.setter
+    def numSymbols(self, value):
+        self._numSymbols = value
+
+    @property
+    def Symbols(self):
+        return self._Symbols
+
     def parse(self, data, length, version=1):
         self.symbols = []
-        numSymbols = data.readUI16()
-        for i in range(0, numSymbols):
+        self.numSymbols = data.readUI16()
+        for i in range(0, self.numSymbols):
             self.symbols.append(data.readSYMBOL())
+
+    def __str__(self):
+        s = super(__class__, self).__str__()
+        s += f' #Sym={self.numSymbols}'
+        s += verticalDots3 # mark as fairly complete
+        return s
 
 class TagMetadata(Tag):
     TYPE = 77
     def __init__(self):
-        super(TagMetadata, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -1756,7 +1903,7 @@ class TagMetadata(Tag):
 
     @property
     def type(self):
-        return TagMetadata.TYPE
+        return __class__.TYPE
 
     @property
     def level(self):
@@ -1777,7 +1924,7 @@ class TagMetadata(Tag):
 class TagDoABC(Tag):
     TYPE = 82
     def __init__(self):
-        super(TagDoABC, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -1785,7 +1932,7 @@ class TagDoABC(Tag):
 
     @property
     def type(self):
-        return TagDoABC.TYPE
+        return __class__.TYPE
 
     @property
     def level(self):
@@ -1802,10 +1949,14 @@ class TagDoABC(Tag):
         self.abcName = data.readString()
         self.bytes = data.f.read(length - (data.tell() - pos))
 
+    def __str__(self):
+        s = super(__class__, self).__str__( )
+        return s
+
 class TagDefineShape4(TagDefineShape3):
     TYPE = 83
     def __init__(self):
-        super(TagDefineShape4, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -1813,7 +1964,7 @@ class TagDefineShape4(TagDefineShape3):
 
     @property
     def type(self):
-        return TagDefineShape4.TYPE
+        return __class__.TYPE
 
     @property
     def level(self):
@@ -1833,12 +1984,16 @@ class TagDefineShape4(TagDefineShape3):
         self.uses_scaling_strokes = ((flags & 0x01) != 0)
         self._shapes = data.readSHAPEWITHSTYLE(self.level)
 
+    def __str__(self):
+        s = super(__class__, self).__str__( )
+        return s
+
 class TagDefineSceneAndFrameLabelData(Tag):
     TYPE = 86
     def __init__(self):
         self.scenes = []
         self.frameLabels = []
-        super(TagDefineSceneAndFrameLabelData, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -1846,7 +2001,7 @@ class TagDefineSceneAndFrameLabelData(Tag):
 
     @property
     def type(self):
-        return TagDefineSceneAndFrameLabelData.TYPE
+        return __class__.TYPE
 
     @property
     def level(self):
@@ -1876,13 +2031,17 @@ class TagDefineSceneAndFrameLabelData(Tag):
             frameLabel = data.readString();
             self.frameLabels.append(SWFFrameLabel(frameNumber, frameLabel))
 
+    def __str__(self):
+        s = super(__class__, self).__str__( )
+        return s
+
 class TagDefineBinaryData(DefinitionTag):
     """
 	The DefineBinaryData tag permits arbitrary binary data to be embedded in a SWF file. DefineBinaryData is a definition tag, like DefineShape and DefineSprite. It associates a blob of binary data with a standard SWF 16-bit character ID. The character ID is entered into the SWF file's character dictionary. DefineBinaryData is intended to be used in conjunction with the SymbolClass tag. The SymbolClass tag can be used to associate a DefineBinaryData tag with an AS3 class definition. The AS3 class must be a subclass of ByteArray. When the class is instantiated, it will be populated automatically with the contents of the binary data resource.
     """
     TYPE = 87
     def __init__(self):
-        super(TagDefineBinaryData, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -1890,17 +2049,22 @@ class TagDefineBinaryData(DefinitionTag):
 
     @property
     def type(self):
-        return TagDefineBinaryData.TYPE
+        return __class__.TYPE
 
     def parse(self, data, length, version=1):
         self.characterId = data.readUI16()
         self.reserved = data.readUI32()
         self.data = data.read(length - 6)
 
+    def __str__(self):
+        s = super(__class__, self).__str__( )
+        s += f' ID: {self.characterId}'
+        return s
+
 class TagDefineFontName(Tag):
     TYPE = 88
     def __init__(self):
-        super(TagDefineFontName, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -1908,7 +2072,7 @@ class TagDefineFontName(Tag):
 
     @property
     def type(self):
-        return TagDefineFontName.TYPE
+        return __class__.TYPE
 
     @property
     def level(self):
@@ -1919,7 +2083,7 @@ class TagDefineFontName(Tag):
         return 9
 
     def get_dependencies(self):
-        s = super(TagDefineFontName, self).get_dependencies()
+        s = super(__class__, self).get_dependencies()
         s.add(self.fontId)
         return s
 
@@ -1928,10 +2092,14 @@ class TagDefineFontName(Tag):
         self.fontName = data.readString()
         self.fontCopyright = data.readString()
 
+    def __str__(self):
+        s = super(__class__, self).__str__( )
+        return s
+
 class TagDefineSound(Tag):
     TYPE = 14
     def __init__(self):
-        super(TagDefineSound, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -1939,7 +2107,7 @@ class TagDefineSound(Tag):
 
     @property
     def type(self):
-        return TagDefineSound.TYPE
+        return __class__.TYPE
 
     @property
     def level(self):
@@ -1971,7 +2139,7 @@ class TagDefineSound(Tag):
 class TagStartSound(Tag):
     TYPE = 15
     def __init__(self):
-        super(TagStartSound, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -1979,7 +2147,7 @@ class TagStartSound(Tag):
 
     @property
     def type(self):
-        return TagStartSound.TYPE
+        return __class__.TYPE
 
     @property
     def level(self):
@@ -1993,10 +2161,14 @@ class TagStartSound(Tag):
         self.soundId = data.readUI16()
         self.soundInfo = data.readSOUNDINFO()
 
+    def __str__(self):
+        s = super(__class__, self).__str__( )
+        return s
+
 class TagStartSound2(Tag):
     TYPE = 89
     def __init__(self):
-        super(TagStartSound2, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -2004,7 +2176,7 @@ class TagStartSound2(Tag):
 
     @property
     def type(self):
-        return TagStartSound2.TYPE
+        return __class__.TYPE
 
     @property
     def level(self):
@@ -2018,10 +2190,14 @@ class TagStartSound2(Tag):
         self.soundClassName = data.readString()
         self.soundInfo = data.readSOUNDINFO()
 
+    def __str__(self):
+        s = super(__class__, self).__str__( )
+        return s
+
 class TagSoundStreamHead(Tag):
     TYPE = 18
     def __init__(self):
-        super(TagSoundStreamHead, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -2029,7 +2205,7 @@ class TagSoundStreamHead(Tag):
 
     @property
     def type(self):
-        return TagSoundStreamHead.TYPE
+        return __class__.TYPE
 
     @property
     def level(self):
@@ -2076,7 +2252,7 @@ class TagSoundStreamHead2(TagSoundStreamHead):
     TYPE = 45
 
     def __init__(self):
-        super(TagSoundStreamHead2, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -2084,7 +2260,11 @@ class TagSoundStreamHead2(TagSoundStreamHead):
 
     @property
     def type(self):
-        return TagSoundStreamHead2.TYPE
+        return __class__.TYPE
+
+    def __str__(self):
+        s = super(__class__, self).__str__( )
+        return s
 
 class TagSoundStreamBlock(Tag):
     """
@@ -2094,7 +2274,7 @@ class TagSoundStreamBlock(Tag):
     TYPE = 19
 
     def __init__(self):
-        super(TagSoundStreamBlock, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -2102,7 +2282,7 @@ class TagSoundStreamBlock(Tag):
 
     @property
     def type(self):
-        return TagSoundStreamBlock.TYPE
+        return __class__.TYPE
 
     def parse(self, data, length, version=1):
         # unfortunately we can't see our associated SoundStreamHead from here,
@@ -2119,6 +2299,10 @@ class TagSoundStreamBlock(Tag):
             self.seekSize = stream.readSI16()
             self.mpegFrames = stream.read()
 
+    def __str__(self):
+        s = super(__class__, self).__str__( )
+        return s
+
 class TagDefineBinaryData(DefinitionTag):
     """
     The DefineBinaryData tag permits arbitrary binary data to be embedded in a SWF file.
@@ -2129,7 +2313,7 @@ class TagDefineBinaryData(DefinitionTag):
     TYPE = 87
 
     def __init__(self):
-        super(TagDefineBinaryData, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -2137,13 +2321,17 @@ class TagDefineBinaryData(DefinitionTag):
 
     @property
     def type(self):
-        return TagDefineBinaryData.TYPE
+        return __class__.TYPE
 
     def parse(self, data, length, version=1):
         assert length >= 6
         self.characterId = data.readUI16()
         self.reserved = data.readUI32()
         self.data = data.read(length - 4 - 2)
+
+    def __str__(self):
+        s = super(__class__, self).__str__( )
+        return s
 
 class TagProductInfo(Tag):
     """
@@ -2152,7 +2340,7 @@ class TagProductInfo(Tag):
     TYPE = 41
 
     def __init__(self):
-        super(TagProductInfo, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -2160,7 +2348,7 @@ class TagProductInfo(Tag):
 
     @property
     def type(self):
-        return TagProductInfo.TYPE
+        return __class__.TYPE
 
     def parse(self, data, length, version=1):
         self.product = data.readUI32()
@@ -2186,7 +2374,7 @@ class TagScriptLimits(Tag):
     TYPE = 65
 
     def __init__(self):
-        super(TagScriptLimits, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -2194,7 +2382,7 @@ class TagScriptLimits(Tag):
 
     @property
     def type(self):
-        return TagScriptLimits.TYPE
+        return __class__.TYPE
 
     def parse(self, data, length, version=1):
         self.maxRecursionDepth = data.readUI16()
@@ -2213,7 +2401,7 @@ class TagDebugID(Tag):
     TYPE = 63
 
     def __init__(self):
-        super(TagDebugID, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -2221,10 +2409,14 @@ class TagDebugID(Tag):
 
     @property
     def type(self):
-        return TagDebugID.TYPE
+        return __class__.TYPE
 
     def parse(self, data, length, version=1):
         self.guid = data.read(16)
+
+    def __str__(self):
+        s = super(__class__, self).__str__( )
+        return s
 
 class TagExportAssets(Tag):
     """
@@ -2233,7 +2425,7 @@ class TagExportAssets(Tag):
     TYPE = 56
 
     def __init__(self):
-        super(TagExportAssets, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -2245,7 +2437,7 @@ class TagExportAssets(Tag):
 
     @property
     def type(self):
-        return TagExportAssets.TYPE
+        return __class__.TYPE
 
     def parse(self, data, length, version=1):
         self.count = data.readUI16()
@@ -2265,7 +2457,7 @@ class TagProtect(Tag):
     TYPE = 24
 
     def __init__(self):
-        super(TagProtect, self).__init__()
+        super(__class__, self).__init__()
         self.password = None
 
     @property
@@ -2278,7 +2470,7 @@ class TagProtect(Tag):
 
     @property
     def type(self):
-        return TagProtect.TYPE
+        return __class__.TYPE
 
     def parse(self, data, length, version=1):
         if length:
@@ -2299,7 +2491,7 @@ class TagEnableDebugger(Tag):
     TYPE = 58
 
     def __init__(self):
-        super(TagEnableDebugger, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -2311,7 +2503,7 @@ class TagEnableDebugger(Tag):
 
     @property
     def type(self):
-        return TagEnableDebugger.TYPE
+        return __class__.TYPE
 
     def parse(self, data, length, version=1):
         self.password = data.readString()
@@ -2329,7 +2521,7 @@ class TagEnableDebugger2(Tag):
     TYPE = 64
 
     def __init__(self):
-        super(TagEnableDebugger2, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -2341,7 +2533,7 @@ class TagEnableDebugger2(Tag):
 
     @property
     def type(self):
-        return TagEnableDebugger2.TYPE
+        return __class__.TYPE
 
     def parse(self, data, length, version=1):
         self.reserved0 = data.readUI16()
@@ -2361,7 +2553,7 @@ class TagDoInitAction(Tag):
     TYPE = 59
 
     def __init__(self):
-        super(TagDoInitAction, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -2373,10 +2565,10 @@ class TagDoInitAction(Tag):
 
     @property
     def type(self):
-        return TagDoInitAction.TYPE
+        return __class__.TYPE
 
     def get_dependencies(self):
-        s = super(TagDoInitAction, self).get_dependencies()
+        s = super(__class__, self).get_dependencies()
         s.add(self.spriteId)
         return s
 
@@ -2400,7 +2592,7 @@ class TagDefineEditText(DefinitionTag):
     TYPE = 37
 
     def __init__(self):
-        super(TagDefineEditText, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -2408,10 +2600,10 @@ class TagDefineEditText(DefinitionTag):
 
     @property
     def type(self):
-        return TagDefineEditText.TYPE
+        return __class__.TYPE
 
     def get_dependencies(self):
-        s = super(TagDefineEditText, self).get_dependencies()
+        s = super(__class__, self).get_dependencies()
         s.add(self.fontId) if self.hasFont else None
         return s
 
@@ -2469,7 +2661,7 @@ class TagDefineButton(DefinitionTag):
     TYPE = 7
 
     def __init__(self):
-        super(TagDefineButton, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -2477,10 +2669,10 @@ class TagDefineButton(DefinitionTag):
 
     @property
     def type(self):
-        return TagDefineButton.TYPE
+        return __class__.TYPE
 
     def get_dependencies(self):
-        s = super(TagDefineButton, self).get_dependencies()
+        s = super(__class__, self).get_dependencies()
         for b in self.buttonCharacters:
             s.update(b.get_dependencies())
         return s
@@ -2502,7 +2694,7 @@ class TagDefineButton2(DefinitionTag):
     TYPE = 34
 
     def __init__(self):
-        super(TagDefineButton2, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -2510,10 +2702,10 @@ class TagDefineButton2(DefinitionTag):
 
     @property
     def type(self):
-        return TagDefineButton2.TYPE
+        return __class__.TYPE
 
     def get_dependencies(self):
-        s = super(TagDefineButton2, self).get_dependencies()
+        s = super(__class__, self).get_dependencies()
         for b in self.buttonCharacters:
             s.update(b.get_dependencies())
         return s
@@ -2542,7 +2734,7 @@ class TagDefineButtonSound(Tag):
     TYPE = 17
 
     def __init__(self):
-        super(TagDefineButtonSound, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -2550,7 +2742,7 @@ class TagDefineButtonSound(Tag):
 
     @property
     def type(self):
-        return TagDefineButtonSound.TYPE
+        return __class__.TYPE
 
     @property
     def version(self):
@@ -2565,7 +2757,11 @@ class TagDefineButtonSound(Tag):
             soundInfo = data.readSOUNDINFO() if soundId else None
             setattr(self, 'soundInfoOn' + event, soundInfo)
 
-class TagDefineScalingGrid(Tag):
+    def __str__(self):
+        s = super(__class__, self).__str__( )
+        return s
+
+class TagDefineScalingGrid(DefinitionTag):
     """
     The DefineScalingGrid tag introduces the concept of 9-slice scaling, which allows
     component-style scaling to be applied to a sprite or button character.
@@ -2573,7 +2769,7 @@ class TagDefineScalingGrid(Tag):
     TYPE = 78
 
     def __init__(self):
-        super(TagDefineScalingGrid, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -2581,7 +2777,15 @@ class TagDefineScalingGrid(Tag):
 
     @property
     def type(self):
-        return TagDefineScalingGrid.TYPE
+        return __class__.TYPE
+
+    @property
+    def splitter(self):
+        return self._splitter
+
+    @splitter.setter
+    def splitter(self, value):
+        self._splitter = value
 
     def parse(self, data, length, version=1):
         self.characterId = data.readUI16()
@@ -2589,6 +2793,8 @@ class TagDefineScalingGrid(Tag):
 
     def __str__(self):
         s = super(__class__, self).__str__()
+        s += f' ID: {self.characterId}'
+        s += f', Splt: {self.splitter}'
         return s
 
 class TagDefineVideoStream(DefinitionTag):
@@ -2598,7 +2804,7 @@ class TagDefineVideoStream(DefinitionTag):
     TYPE = 60
 
     def __init__(self):
-        super(TagDefineVideoStream, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -2606,7 +2812,7 @@ class TagDefineVideoStream(DefinitionTag):
 
     @property
     def type(self):
-        return TagDefineVideoStream.TYPE
+        return __class__.TYPE
 
     def parse(self, data, length, version=1):
         self.characterId = data.readUI16()
@@ -2630,7 +2836,7 @@ class TagVideoFrame(Tag):
     TYPE = 61
 
     def __init__(self):
-        super(TagVideoFrame, self).__init__()
+        super(__class__, self).__init__()
 
     @property
     def name(self):
@@ -2638,7 +2844,7 @@ class TagVideoFrame(Tag):
 
     @property
     def type(self):
-        return TagVideoFrame.TYPE
+        return __class__.TYPE
 
     def parse(self, data, length, version=1):
         self.streamId = data.readUI16()
@@ -2664,14 +2870,14 @@ class TagDefineMorphShape2(TagDefineMorphShape):
 
     @property
     def type(self):
-        return TagDefineMorphShape2.TYPE
+        return __class__.TYPE
 
     @property
     def version(self):
         return 8
 
     def get_dependencies(self):
-        s = super(TagDefineMorphShape2, self).get_dependencies()
+        s = super(__class__, self).get_dependencies()
         s.update(self.startEdges.get_dependencies())
         s.update(self.endEdges.get_dependencies())
         return s

@@ -6,7 +6,7 @@ import colorama as clrm
 
 def test_header():
 
-  if True or False:
+  if True and False:
     fn = './test/data/test.swf'
     hdrFrmCnt = 1
   else:
