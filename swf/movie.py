@@ -167,5 +167,5 @@ class SWF(SWFTimelineContainer):
         ix = 0
         for tag in self.tags:
             ix += 1
-            s += f'#{ix}:{tag.__str__()}\n'
+            s += f'#{ix}:{tag._colourOffsetLen}+{hex(tag.tagOffset)}[{hex(tag.tagLen)}]{tag._colourOff}:{tag.__str__()}\n'
         return s

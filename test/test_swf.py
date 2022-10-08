@@ -6,7 +6,7 @@ import colorama as clrm
 
 def test_header():
 
-  if True and False:
+  if True or False:
     fn = './test/data/test.swf'
     hdrFrmCnt = 1
   else:
@@ -16,6 +16,7 @@ def test_header():
   f = open(fn, 'rb')
   swf = SWF(f)
 
+  Tag._colourOffsetLen = clrm.Back.GREEN
   Tag._colourName = clrm.Back.BLUE
   Tag._colourOff = clrm.Style.RESET_ALL
   print(swf)

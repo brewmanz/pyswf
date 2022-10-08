@@ -14,75 +14,94 @@ from io import BytesIO
 
 class TagFactory(object):
     @classmethod
-    def create(cls, type):
+    def create(cls, type, tagOffset: int, tagLen: int):
         """ Return the created tag by specifying an integer """
-        if type == 0: return TagEnd()
-        elif type == 1: return TagShowFrame()
-        elif type == 2: return TagDefineShape()
-        elif type == 4: return TagPlaceObject()
-        elif type == 5: return TagRemoveObject()
-        elif type == 6: return TagDefineBits()
-        elif type == 7: return TagDefineButton()
-        elif type == 8: return TagJPEGTables()
-        elif type == 9: return TagSetBackgroundColor()
-        elif type == 10: return TagDefineFont()
-        elif type == 11: return TagDefineText()
-        elif type == 12: return TagDoAction()
-        elif type == 13: return TagDefineFontInfo()
-        elif type == 14: return TagDefineSound()
-        elif type == 15: return TagStartSound()
-        elif type == 17: return TagDefineButtonSound()
-        elif type == 18: return TagSoundStreamHead()
-        elif type == 19: return TagSoundStreamBlock()
-        elif type == 20: return TagDefineBitsLossless()
-        elif type == 21: return TagDefineBitsJPEG2()
-        elif type == 22: return TagDefineShape2()
-        elif type == 24: return TagProtect()
-        elif type == 26: return TagPlaceObject2()
-        elif type == 28: return TagRemoveObject2()
-        elif type == 32: return TagDefineShape3()
-        elif type == 33: return TagDefineText2()
-        elif type == 34: return TagDefineButton2()
-        elif type == 35: return TagDefineBitsJPEG3()
-        elif type == 36: return TagDefineBitsLossless2()
-        elif type == 37: return TagDefineEditText()
-        elif type == 39: return TagDefineSprite()
-        elif type == 41: return TagProductInfo()
-        elif type == 43: return TagFrameLabel()
-        elif type == 45: return TagSoundStreamHead2()
-        elif type == 46: return TagDefineMorphShape()
-        elif type == 48: return TagDefineFont2()
-        elif type == 56: return TagExportAssets()
-        elif type == 58: return TagEnableDebugger()
-        elif type == 59: return TagDoInitAction()
-        elif type == 60: return TagDefineVideoStream()
-        elif type == 61: return TagVideoFrame()
-        elif type == 63: return TagDebugID()
-        elif type == 64: return TagEnableDebugger2()
-        elif type == 65: return TagScriptLimits()
-        elif type == 69: return TagFileAttributes()
-        elif type == 70: return TagPlaceObject3()
-        elif type == 73: return TagDefineFontAlignZones()
-        elif type == 74: return TagCSMTextSettings()
-        elif type == 75: return TagDefineFont3()
-        elif type == 76: return TagSymbolClass()
-        elif type == 77: return TagMetadata()
-        elif type == 78: return TagDefineScalingGrid()
-        elif type == 82: return TagDoABC()
-        elif type == 83: return TagDefineShape4()
-        elif type == 84: return TagDefineMorphShape2()
-        elif type == 86: return TagDefineSceneAndFrameLabelData()
-        elif type == 87: return TagDefineBinaryData()
-        elif type == 88: return TagDefineFontName()
-        elif type == 89: return TagStartSound2()
+        res: Tag = None
+        if type == 0: res = TagEnd()
+        elif type == 1: res = TagShowFrame()
+        elif type == 2: res = TagDefineShape()
+        elif type == 4: res = TagPlaceObject()
+        elif type == 5: res = TagRemoveObject()
+        elif type == 6: res = TagDefineBits()
+        elif type == 7: res = TagDefineButton()
+        elif type == 8: res = TagJPEGTables()
+        elif type == 9: res = TagSetBackgroundColor()
+        elif type == 10: res = TagDefineFont()
+        elif type == 11: res = TagDefineText()
+        elif type == 12: res = TagDoAction()
+        elif type == 13: res = TagDefineFontInfo()
+        elif type == 14: res = TagDefineSound()
+        elif type == 15: res = TagStartSound()
+        elif type == 17: res = TagDefineButtonSound()
+        elif type == 18: res = TagSoundStreamHead()
+        elif type == 19: res = TagSoundStreamBlock()
+        elif type == 20: res = TagDefineBitsLossless()
+        elif type == 21: res = TagDefineBitsJPEG2()
+        elif type == 22: res = TagDefineShape2()
+        elif type == 24: res = TagProtect()
+        elif type == 26: res = TagPlaceObject2()
+        elif type == 28: res = TagRemoveObject2()
+        elif type == 32: res = TagDefineShape3()
+        elif type == 33: res = TagDefineText2()
+        elif type == 34: res = TagDefineButton2()
+        elif type == 35: res = TagDefineBitsJPEG3()
+        elif type == 36: res = TagDefineBitsLossless2()
+        elif type == 37: res = TagDefineEditText()
+        elif type == 39: res = TagDefineSprite()
+        elif type == 41: res = TagProductInfo()
+        elif type == 43: res = TagFrameLabel()
+        elif type == 45: res = TagSoundStreamHead2()
+        elif type == 46: res = TagDefineMorphShape()
+        elif type == 48: res = TagDefineFont2()
+        elif type == 56: res = TagExportAssets()
+        elif type == 58: res = TagEnableDebugger()
+        elif type == 59: res = TagDoInitAction()
+        elif type == 60: res = TagDefineVideoStream()
+        elif type == 61: res = TagVideoFrame()
+        elif type == 63: res = TagDebugID()
+        elif type == 64: res = TagEnableDebugger2()
+        elif type == 65: res = TagScriptLimits()
+        elif type == 69: res = TagFileAttributes()
+        elif type == 70: res = TagPlaceObject3()
+        elif type == 73: res = TagDefineFontAlignZones()
+        elif type == 74: res = TagCSMTextSettings()
+        elif type == 75: res = TagDefineFont3()
+        elif type == 76: res = TagSymbolClass()
+        elif type == 77: res = TagMetadata()
+        elif type == 78: res = TagDefineScalingGrid()
+        elif type == 82: res = TagDoABC()
+        elif type == 83: res = TagDefineShape4()
+        elif type == 84: res = TagDefineMorphShape2()
+        elif type == 86: res = TagDefineSceneAndFrameLabelData()
+        elif type == 87: res = TagDefineBinaryData()
+        elif type == 88: res = TagDefineFontName()
+        elif type == 89: res = TagStartSound2()
         else: return None
+
+        res.setTagOffset(tagOffset)
+        res.setTagLen(tagLen)
+
+        return res
 
 class Tag(object):
     def __init__(self):
         pass
 
     _colourName = ''
+    _colourOffsetLen = ''
     _colourOff = ''
+
+    @property
+    def tagOffset(self):
+        return self._tagOffset
+    def setTagOffset(self, value: int):
+        self._tagOffset = value
+
+    @property
+    def tagLen(self):
+        return self._tagLen
+    def setTagLen(self, value: int):
+        self._tagLen = value
 
     @property
     def level(self):
@@ -182,7 +201,7 @@ class SWFTimelineContainer(DefinitionTag):
             return TagEnd()
         raw_tag = data.readraw_tag()
         tag_type = raw_tag.header.type
-        tag = TagFactory.create(tag_type)
+        tag = TagFactory.create(tag_type, pos, raw_tag.header.tag_length)
         if tag is not None:
             #print tag.name
             data.seek(raw_tag.pos_content)
