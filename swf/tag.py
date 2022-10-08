@@ -12,6 +12,8 @@ except ImportError:
 import struct
 from io import BytesIO
 
+from swf.data import SWFRectangle
+
 verticalDots1 = '·'
 verticalDots2 = ':'
 verticalDots3 = '⋮'
@@ -367,6 +369,22 @@ class TagShowFrame(Tag):
         s += verticalDots4 # mark as complete
         return s
 
+class _Helper_TerseBounds:
+  """
+  reduce the screen footprint of Shape Bounds
+  """
+  def __init__(self, bounds: SWFRectangle):
+    self.L = bounds.xmin
+    self.R = bounds.xmax
+    self.T = bounds.ymin
+    self.B = bounds.ymax
+  def twix(self):
+    s = f'Tw[{self.L},{self.T}]-[{self.R},{self.B}]'
+    return s
+  def __str__(self):
+    s = f'Px[{self.L//20},{self.T//20}]-[{self.R//20},{self.B//20}]'
+    return s
+
 class TagDefineShape(DefinitionTag):
     """
     The DefineShape tag defines a shape for later use by control tags such as
@@ -417,9 +435,11 @@ class TagDefineShape(DefinitionTag):
 
     def __str__(self):
         s = super(__class__, self).__str__( ) + " " + \
-            "ID: %d" % self.characterId + ", " + \
+            "ID: %d" % self.characterId + ", "  + \
             "Bounds: " + self._shape_bounds.__str__()
-        #s += "\n%s" % self._shapes.__str__()
+        htb = _Helper_TerseBounds(self._shape_bounds)
+        s += f' Bnd:{htb}'
+        #s += f'({htb.twix()})'
         return s
 
 class TagPlaceObject(DisplayListTag):
@@ -585,6 +605,7 @@ class TagDefineBits(DefinitionTag):
     def __str__(self):
         s = super(__class__, self).__str__()
         s += f' ID {self.characterId}'
+        s += f' bm Typ/Len={self.bitmapType}/{hex(len(self.bitmapData.read()))}'
         #s += verticalDots1 # mark as started
         return s
 
@@ -1008,6 +1029,7 @@ class TagDefineBitsLossless(DefinitionTag):
     def __str__(self):
         s = super(__class__, self).__str__( )
         s += f' ID: {self.characterId}'
+        s += f', bm Typ/Len={self.bitmapType}/{hex(len(self.bitmapData.read()))}'
         s += verticalDots1 # mark as started complete
         return s
 
@@ -1060,6 +1082,7 @@ class TagDefineBitsJPEG2(TagDefineBits):
 
     def __str__(self):
         s = super(__class__, self).__str__()
+        #s += f' bmTyp/len={self.bitmapType}/{hex(len(self.bitmapData.getvalue()))}'
         return s
 
 class TagDefineShape2(TagDefineShape):
@@ -1367,6 +1390,7 @@ class TagDefineBitsJPEG3(TagDefineBitsJPEG2):
 
     def __str__(self):
         s = super(__class__, self).__str__( )
+        # done via JPEG2 # s += f' bmTyp={self.bitmapType}'
         return s
 
 class TagDefineBitsLossless2(TagDefineBitsLossless):
