@@ -151,7 +151,6 @@ class DefinitionTag(Tag):
     def characterId(self):
         """ Return the character ID """
         return self._characterId
-
     @characterId.setter
     def characterId(self, value):
         """ Sets the character ID """
@@ -1633,7 +1632,24 @@ class TagDefineFont2(TagDefineFont):
                 self.fontKerningTable.append(data.readKERNINGRECORD(self.wideCodes))
 
     def __str__(self):
-        s = super(__class__, self).__str__( )
+        s = super(__class__, self).__str__()
+        s += f' ID: {self.characterId}'
+        s += ' ('
+        if self.hasLayout: s += ' HsLy'
+        if self.shiftJIS: s += ' ShJ'
+        if self.smallText: s += ' SmTx'
+        if self.ansi: s += ' Ansi'
+        if self.wideOffsets: s += ' WdOf'
+        if self.wideCodes: s += ' WdCd'
+        if self.italic: s += ' Itl'
+        if self.bold: s += ' Bld'
+        s += ')'
+        s += f' Lng:{self.languageCode}'
+        s += f' Fnt`{self.fontName}`'
+        s += f' CdTb#{len(self.codeTable)}'
+        s += f' GlpST#{len(self.glyphShapeTable)}'
+        if self.hasLayout: s += f' A/D/L={self.ascent}/{self.descent}/{self.leading}'
+        if self.hasLayout: s += f' fnt Adv/Bnd/Krn # ={len(self.fontAdvanceTable)}/{len(self.fontBoundsTable)}/{len(self.fontKerningTable)}'
         return s
 
 class TagFileAttributes(Tag):
@@ -1773,6 +1789,27 @@ class TagDefineFontAlignZones(Tag):
     def version(self):
         return 8
 
+    @property
+    def fontId(self):
+        return self._fontId
+    @fontId.setter
+    def fontId(self, value):
+        self._fontId = value
+
+    @property
+    def csmTableHint(self):
+        return self._csmTableHint
+    @csmTableHint.setter
+    def csmTableHint(self, value):
+        self._csmTableHint = value
+
+    @property
+    def zoneTable(self):
+        return self._zoneTable
+    @zoneTable.setter
+    def zoneTable(self, value):
+        self._zoneTable = value
+
     def parse(self, data, length, version=1):
         self.zoneTable = []
 
@@ -1784,7 +1821,11 @@ class TagDefineFontAlignZones(Tag):
             self.zoneTable.append(data.readZONERECORD())
 
     def __str__(self):
-        s = super(__class__, self).__str__( )
+        s = super(__class__, self).__str__()
+        s += f' fntId: {self.fontId}'
+        s += f', TblHnt: {self.csmTableHint}'
+        s += f', ZnTbl#: {hex(len(self.zoneTable))}'
+        s += verticalDots4
         return s
 
 class TagCSMTextSettings(Tag):
@@ -2051,14 +2092,23 @@ class TagDefineBinaryData(DefinitionTag):
     def type(self):
         return __class__.TYPE
 
+    @property
+    def data(self):
+        return self._data
+    @data.setter
+    def data(self, value):
+        self._data = value
+
     def parse(self, data, length, version=1):
         self.characterId = data.readUI16()
         self.reserved = data.readUI32()
-        self.data = data.read(length - 6)
+        self.data = data.read(length - 4 - 2)
 
     def __str__(self):
-        s = super(__class__, self).__str__( )
+        s = super(__class__, self).__str__()
         s += f' ID: {self.characterId}'
+        s += f' Dt[{hex(len(self.data))}]'
+        s += verticalDots1
         return s
 
 class TagDefineFontName(Tag):
@@ -2082,6 +2132,27 @@ class TagDefineFontName(Tag):
     def version(self):
         return 9
 
+    @property
+    def fontId(self):
+        return self._fontId
+    @fontId.setter
+    def fontId(self, value):
+        self._fontId = value
+
+    @property
+    def fontName(self):
+        return self._fontName
+    @fontName.setter
+    def fontName(self, value):
+        self._fontName = value
+
+    @property
+    def fontCopyright(self):
+        return self._fontCopyright
+    @fontCopyright.setter
+    def fontCopyright(self, value):
+        self._fontCopyright = value
+
     def get_dependencies(self):
         s = super(__class__, self).get_dependencies()
         s.add(self.fontId)
@@ -2094,6 +2165,10 @@ class TagDefineFontName(Tag):
 
     def __str__(self):
         s = super(__class__, self).__str__( )
+        s += f' Fnt ID: {self.fontId}'
+        s += f' `{self.fontName}`'
+        s += f' ©{self.fontCopyright}'
+        s += verticalDots4
         return s
 
 class TagDefineSound(Tag):
@@ -2303,35 +2378,35 @@ class TagSoundStreamBlock(Tag):
         s = super(__class__, self).__str__( )
         return s
 
-class TagDefineBinaryData(DefinitionTag):
-    """
-    The DefineBinaryData tag permits arbitrary binary data to be embedded in a SWF file.
-    DefineBinaryData is a definition tag, like DefineShape and DefineSprite. It associates a blob
-    of binary data with a standard SWF 16-bit character ID. The character ID is entered into the
-    SWF file's character dictionary.
-    """
-    TYPE = 87
+# class TagDefineBinaryData(DefinitionTag):
+    # """
+    # The DefineBinaryData tag permits arbitrary binary data to be embedded in a SWF file.
+    # DefineBinaryData is a definition tag, like DefineShape and DefineSprite. It associates a blob
+    # of binary data with a standard SWF 16-bit character ID. The character ID is entered into the
+    # SWF file's character dictionary.
+    # """
+    # TYPE = 87
 
-    def __init__(self):
-        super(__class__, self).__init__()
+    # def __init__(self):
+        # super(__class__, self).__init__()
 
-    @property
-    def name(self):
-        return "TagDefineBinaryData"
+    # @property
+    # def name(self):
+        # return "TagDefineBinaryData"
 
-    @property
-    def type(self):
-        return __class__.TYPE
+    # @property
+    # def type(self):
+        # return __class__.TYPE
 
-    def parse(self, data, length, version=1):
-        assert length >= 6
-        self.characterId = data.readUI16()
-        self.reserved = data.readUI32()
-        self.data = data.read(length - 4 - 2)
+    # def parse(self, data, length, version=1):
+        # assert length >= 6
+        # self.characterId = data.readUI16()
+        # self.reserved = data.readUI32()
+        # self.data = data.read(length - 4 - 2)
 
-    def __str__(self):
-        s = super(__class__, self).__str__( )
-        return s
+    # def __str__(self):
+        # s = super(__class__, self).__str__( )
+        # return s
 
 class TagProductInfo(Tag):
     """
