@@ -97,6 +97,7 @@ class Tag(object):
     _colourName = ''
     _colourOffsetLen = ''
     _colourOff = ''
+    _strInfoDetail = 5 # nominally 1 (min) to 9 (max)
 
     @property
     def tagOffset(self):
@@ -1954,6 +1955,9 @@ class TagSymbolClass(Tag):
     def __str__(self):
         s = super(__class__, self).__str__()
         s += f' #Sym={self.numSymbols}'
+        if self._strInfoDetail > 4:
+          for ix in range(self.numSymbols):
+            s += f' [{ix}]={self.symbols[ix]}'
         s += verticalDots3 # mark as fairly complete
         return s
 
