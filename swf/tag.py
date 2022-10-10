@@ -21,7 +21,7 @@ verticalDots4 = '⁞'
 
 class TagFactory(object):
     @classmethod
-    def create(cls, type, tagOffset: int, tagLen: int):
+    def create(cls, type, tagHdrLen, tagOffset: int, tagLen: int):
         """ Return the created tag by specifying an integer """
         res: Tag = None
         if type == 0: res = TagEnd()
@@ -85,14 +85,15 @@ class TagFactory(object):
         elif type == 89: res = TagStartSound2()
         else: return None
 
-        res.tagOffset = tagOffset
-        res.tagLen = tagLen
+        res._tagOffset = tagOffset
+        res._tagLen = tagLen
+        res._tagHdrLen = tagHdrLen
 
         return res
 
 class Tag(object):
     def __init__(self):
-        pass
+        self._rawBytes = []
 
     _colourName = ''
     _colourOffsetLen = ''
@@ -100,18 +101,20 @@ class Tag(object):
     _strInfoDetail = 5 # nominally 1 (min) to 9 (max)
 
     @property
+    def rawBytes(self):
+        return self._rawBytes
+
+    @property
     def tagOffset(self):
         return self._tagOffset
-    @tagOffset.setter
-    def tagOffset(self, value):
-        self._tagOffset = value
 
     @property
     def tagLen(self):
         return self._tagLen
-    @tagLen.setter
-    def tagLen(self, value):
-        self._tagLen = value
+
+    @property
+    def tagHdrLen(self):
+        return self._tagHdrLen
 
     @property
     def level(self):
@@ -142,7 +145,8 @@ class Tag(object):
         Tag._colourOff = clrm.Style.RESET_ALL
         print(swf)
         """
-        return "[%02d:%s%s%s]" % (self.type, self._colourName, self.name, self._colourOff)
+        typePlusHdrLen = (self.type * 0x40) + self.tagHdrLen
+        return "[%02d[x_%x]:%s%s%s]" % (self.type, typePlusHdrLen, self._colourName, self.name, self._colourOff)
 
 class DefinitionTag(Tag):
 
@@ -220,7 +224,8 @@ class SWFTimelineContainer(DefinitionTag):
             return TagEnd()
         raw_tag = data.readraw_tag()
         tag_type = raw_tag.header.type
-        tag = TagFactory.create(tag_type, pos, raw_tag.header.tag_length)
+        tag_hdr_len = raw_tag.header.header_length
+        tag = TagFactory.create(tag_type, tag_hdr_len, pos, raw_tag.header.tag_length)
         if tag is not None:
             #print tag.name
             data.seek(raw_tag.pos_content)
@@ -2405,36 +2410,6 @@ class TagSoundStreamBlock(Tag):
     def __str__(self):
         s = super(__class__, self).__str__( )
         return s
-
-# class TagDefineBinaryData(DefinitionTag):
-    # """
-    # The DefineBinaryData tag permits arbitrary binary data to be embedded in a SWF file.
-    # DefineBinaryData is a definition tag, like DefineShape and DefineSprite. It associates a blob
-    # of binary data with a standard SWF 16-bit character ID. The character ID is entered into the
-    # SWF file's character dictionary.
-    # """
-    # TYPE = 87
-
-    # def __init__(self):
-        # super(__class__, self).__init__()
-
-    # @property
-    # def name(self):
-        # return "TagDefineBinaryData"
-
-    # @property
-    # def type(self):
-        # return __class__.TYPE
-
-    # def parse(self, data, length, version=1):
-        # assert length >= 6
-        # self.characterId = data.readUI16()
-        # self.reserved = data.readUI32()
-        # self.data = data.read(length - 4 - 2)
-
-    # def __str__(self):
-        # s = super(__class__, self).__str__( )
-        # return s
 
 class TagProductInfo(Tag):
     """

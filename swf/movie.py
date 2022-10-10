@@ -92,9 +92,9 @@ class SWF(SWFTimelineContainer):
 
     @param file: a file object with read(), seek(), tell() methods.
     """
-    def __init__(self, file=None):
+    def __init__(self, theFile=None):
         super(SWF, self).__init__()
-        self._data = None if file is None else SWFStream(file)
+        self._data = None if theFile is None else SWFStream(theFile)
         self._header = None
         if self._data is not None:
             self.parse(self._data)
@@ -140,7 +140,7 @@ class SWF(SWFTimelineContainer):
 
         The @data parameter can be a file object or a SWFStream
         """
-        self._data = data = data if isinstance(data, SWFStream) else SWFStream(data)
+        self._data = data if isinstance(data, SWFStream) else SWFStream(data)
         self._header = SWFHeader(self._data)
         if self._header.compressed:
             temp = BytesIO()
@@ -156,10 +156,12 @@ class SWF(SWFTimelineContainer):
                 temp.write(pylzma.decompress(data))
             temp.seek(0)
             data = SWFStream(temp)
-        self._header._frame_size = data.readRECT()
-        self._header._frame_rate = data.readFIXED8()
-        self._header._frame_count = data.readUI16()
-        self.parse_tags(data)
+            self._data = data
+
+        self._header._frame_size = self._data.readRECT()
+        self._header._frame_rate = self._data.readFIXED8()
+        self._header._frame_count = self._data.readUI16()
+        self.parse_tags(self._data)
 
     def __str__(self):
         s = "[SWF]\n"
