@@ -52,8 +52,6 @@ class SWFStream(object):
 
     def _read_bytes_aligned(self, nBytes):
         buf = self.f.read(nBytes)
-        self._cbAllBytesRead.extend(buf) ###
-        if not self._cbAllBytesRead is None: self._cbAllBytesRead.extend(buf)
         return reduce(lambda x, y: x << 8 | y, buf, 0)
 
     def readbits(self, nBits):
