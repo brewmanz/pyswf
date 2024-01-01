@@ -6,12 +6,13 @@ import colorama as clrm
 
 def test_header():
 
-  if True and False:
+  if True or False: # toggle between 'and' & 'or'
     fn = './test/data/test.swf'
     hdrFrmCnt = 1
   else:
     fn = '../BDL/Games/Evony/.com.evony.download1.EvonyClient1922.swf'
     hdrFrmCnt = 2
+  print(f'BTW fn= = {fn}')
 
   f = open(fn, 'rb')
   swf = SWF(f)
